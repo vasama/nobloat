@@ -27,12 +27,17 @@
 #endif
 
 #if defined(__clang__) || defined(__GNUC__)
+#define nobloat_MSVC_WARNING(...)
 #define nobloat_LIKELY(...) __builtin_expect((__VA_ARGS__), 1)
 #define nobloat_UNLIKELY(...) __builtin_expect((__VA_ARGS__), 0)
 #elif defined(_MSC_VER)
+#define nobloat_MSVC_WARNING(...) __pragma(warning(__VA_ARGS__))
 #define nobloat_LIKELY(...) (__VA_ARGS__)
 #define nobloat_UNLIKELY(...) (__VA_ARGS__)
 #endif
+
+nobloat_MSVC_WARNING(push)
+nobloat_MSVC_WARNING(disable: 4102) // unreferenced label
 
 namespace nobloat {
 namespace detail {
@@ -283,7 +288,7 @@ struct operations
 
 			bool adopt = true;
 			if constexpr (HasLocalStorage)
-				adopt = srcend - srcbeg < local_capacity.capacity;
+				adopt = (size_t)(srcend - srcbeg) < local_capacity.capacity;
 
 			if (adopt)
 			{
@@ -297,25 +302,27 @@ struct operations
 			}
 		}
 
-		bool allocate = true;
+		byte* beg;
 		if constexpr (HasLocalStorage)
-			allocate = size > local_capacity.capacity;
-
-		if (allocate)
 		{
-			byte* beg = allocator.allocate(size);
-
-			array->beg = beg;
-			array->end = beg + size;
+			if (size <= local_capacity.capacity)
+			{
+				beg = reinterpret_cast<byte*>(array + 1);
+				array->end = beg + local_capacity.capacity;
+				goto skip_allocation;
+			}
 		}
 
-		byte* beg = array->beg;
+		beg = allocator.allocate(size);
+		array->end = beg + size;
+	skip_allocation:
 
 		relocate(
 			reinterpret_cast<RelocateT*>(beg),
 			reinterpret_cast<RelocateT*>(srcbeg),
 			reinterpret_cast<RelocateT*>(srcmid));
 
+		array->beg = beg;
 		array->mid = beg + size;
 		src->mid = srcbeg;
 	}
@@ -601,8 +608,7 @@ struct operations
 	}
 
 	template<bool Construct, typename ConstructT, typename DestroyT>
-	static byte* resize(core* array,
-		size_t new_size, allocator_param_type allocator)
+	static byte* resize(core* array, size_t new_size, allocator_param_type allocator)
 	{
 		byte* beg = array->beg;
 		byte* mid = array->mid;
@@ -1365,6 +1371,14 @@ public:
 		return reinterpret_cast<T*>(next);
 	}
 
+	nobloat_INLINE T* _push_back_uninitialized(size_t count)
+	{
+		byte* slots = nobloat_OPERATIONS::push_back(&m.c,
+			count * sizeof(T), static_cast<byte_allocator&>(m));
+
+		return reinterpret_cast<T*>(slots);
+	}
+
 	nobloat_INLINE void push_back(const T& value)
 	{
 		byte* slot = nobloat_OPERATIONS::push_back(&m.c,
@@ -1399,6 +1413,12 @@ public:
 	{
 		nobloat_OPERATIONS::template resize<
 			true, nobloat_CONSTRUCT_TYPE, nobloat_DESTROY_TYPE>(
+			&m.c, count * sizeof(T), static_cast<byte_allocator&>(m));
+	}
+
+	nobloat_INLINE void _resize_uninitialized(size_t count)
+	{
+		nobloat_OPERATIONS::template resize<false, byte, byte>(
 			&m.c, count * sizeof(T), static_cast<byte_allocator&>(m));
 	}
 
@@ -1511,3 +1531,5 @@ template<typename T, size_t LocalCapacity,
 using small_vector = detail::vector<T, Allocator, LocalCapacity>;
 
 } // namespace nobloat
+
+nobloat_MSVC_WARNING(pop)
