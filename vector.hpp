@@ -7,7 +7,6 @@
 #include <utility>
 #include <vector>
 
-#include <cassert>
 #include <cstddef>
 #include <cstring>
 
@@ -25,6 +24,13 @@
 #define nobloat_INLINE
 #define nobloat_NOINLINE
 #endif
+
+#ifndef nobloat_CONFIG_ASSERT
+#include <cassert>
+#define nobloat_CONFIG_ASSERT assert
+#endif
+
+#define nobloat_ASSERT nobloat_CONFIG_ASSERT
 
 #if defined(__clang__) || defined(__GNUC__)
 #define nobloat_MSVC_WARNING(...)
@@ -753,6 +759,29 @@ byte* erase(core* array, byte* first, byte* last)
 	return first;
 }
 
+template<typename RelocateT, typename DestroyT>
+byte* erase_unstable(core* array, byte* first, byte* last)
+{
+	byte* mid = array->mid;
+	byte* new_mid = mid - (last - first);
+
+	std::destroy(
+		reinterpret_cast<DestroyT*>(first),
+		reinterpret_cast<DestroyT*>(last));
+
+	if (last != mid)
+	{
+		relocate(
+			reinterpret_cast<RelocateT*>(first),
+			reinterpret_cast<RelocateT*>(new_mid),
+			reinterpret_cast<RelocateT*>(mid));
+	}
+
+	array->mid = new_mid;
+
+	return first;
+}
+
 template<typename DestroyT>
 void pop_back(core* array, size_t size)
 {
@@ -1096,49 +1125,49 @@ public:
 
 	nobloat_INLINE T& operator[](size_t index)
 	{
-		assert(index < size());
+		nobloat_ASSERT(index < size());
 		return reinterpret_cast<T*>(m.c.beg)[index];
 	}
 
 	nobloat_INLINE const T& operator[](size_t index) const
 	{
-		assert(index < size());
+		nobloat_ASSERT(index < size());
 		return reinterpret_cast<const T*>(m.c.beg)[index];
 	}
 
 	nobloat_INLINE T& at(size_t index)
 	{
-		assert(index < size());
+		nobloat_ASSERT(index < size());
 		return reinterpret_cast<T*>(m.c.beg)[index];
 	}
 
 	nobloat_INLINE const T& at(size_t index) const
 	{
-		assert(index < size());
+		nobloat_ASSERT(index < size());
 		return reinterpret_cast<const T*>(m.c.beg)[index];
 	}
 
 	nobloat_INLINE T& front()
 	{
-		assert(!empty());
+		nobloat_ASSERT(!empty());
 		return *reinterpret_cast<T*>(m.c.beg);
 	}
 
 	nobloat_INLINE const T& front() const
 	{
-		assert(!empty());
+		nobloat_ASSERT(!empty());
 		return *reinterpret_cast<const T*>(m.c.beg);
 	}
 
 	nobloat_INLINE T& back()
 	{
-		assert(!empty());
+		nobloat_ASSERT(!empty());
 		return reinterpret_cast<T*>(m.c.mid)[-1];
 	}
 
 	nobloat_INLINE const T& back() const
 	{
-		assert(!empty());
+		nobloat_ASSERT(!empty());
 		return reinterpret_cast<const T*>(m.c.mid)[-1];
 	}
 
@@ -1253,7 +1282,7 @@ public:
 
 	nobloat_INLINE T* insert(const T* pos, const T& value)
 	{
-		assert(
+		nobloat_ASSERT(
 			pos >= reinterpret_cast<const T*>(m.c.beg) &&
 			pos <= reinterpret_cast<const T*>(m.c.mid));
 
@@ -1266,7 +1295,7 @@ public:
 
 	nobloat_INLINE T* insert(const T* pos, T&& value)
 	{
-		assert(
+		nobloat_ASSERT(
 			pos >= reinterpret_cast<const T*>(m.c.beg) &&
 			pos <= reinterpret_cast<const T*>(m.c.mid));
 
@@ -1279,7 +1308,7 @@ public:
 
 	nobloat_INLINE T* insert(const T* pos, size_t count, const T& value)
 	{
-		assert(
+		nobloat_ASSERT(
 			pos >= reinterpret_cast<const T*>(m.c.beg) &&
 			pos <= reinterpret_cast<const T*>(m.c.mid));
 
@@ -1298,7 +1327,7 @@ public:
 
 	nobloat_INLINE T* insert(const T* pos, const T* first, const T* last)
 	{
-		assert(
+		nobloat_ASSERT(
 			pos >= reinterpret_cast<const T*>(m.c.beg) &&
 			pos <= reinterpret_cast<const T*>(m.c.mid));
 
@@ -1315,7 +1344,7 @@ public:
 	template<typename InputIt>
 	nobloat_INLINE T* insert(const T* pos, InputIt first, InputIt last)
 	{
-		assert(
+		nobloat_ASSERT(
 			pos >= reinterpret_cast<const T*>(m.c.beg) &&
 			pos <= reinterpret_cast<const T*>(m.c.mid));
 
@@ -1334,7 +1363,7 @@ public:
 	template<typename... Args>
 	nobloat_INLINE T* emplace(const T* pos, Args&&... args)
 	{
-		assert(
+		nobloat_ASSERT(
 			pos >= reinterpret_cast<const T*>(m.c.beg) &&
 			pos <= reinterpret_cast<const T*>(m.c.mid));
 
@@ -1347,9 +1376,9 @@ public:
 
 	nobloat_INLINE T* erase(const T* pos)
 	{
-		assert(
+		nobloat_ASSERT(
 			pos >= reinterpret_cast<const T*>(m.c.beg) &&
-			pos <= reinterpret_cast<const T*>(m.c.mid));
+			pos < reinterpret_cast<const T*>(m.c.mid));
 
 		byte* next = detail::erase<nobloat_RELOCATE_TYPE, nobloat_DESTROY_TYPE>(
 			&m.c, reinterpret_cast<byte*>(const_cast<T*>(pos)),
@@ -1358,9 +1387,22 @@ public:
 		return reinterpret_cast<T*>(next);
 	}
 
+	nobloat_INLINE void _erase_unstable(const T* pos)
+	{
+		nobloat_ASSERT(
+			pos >= reinterpret_cast<const T*>(m.c.beg) &&
+			pos < reinterpret_cast<const T*>(m.c.mid));
+
+		byte* next = detail::erase_unstable<nobloat_RELOCATE_TYPE, nobloat_DESTROY_TYPE>(
+			&m.c, reinterpret_cast<byte*>(const_cast<T*>(pos)),
+			reinterpret_cast<byte*>(const_cast<T*>(pos) + 1));
+
+		return reinterpret_cast<T*>(next);
+	}
+
 	nobloat_INLINE T* erase(const T* first, const T* last)
 	{
-		assert(first <= last &&
+		nobloat_ASSERT(first <= last &&
 			first >= reinterpret_cast<const T*>(m.c.beg) &&
 			last <= reinterpret_cast<const T*>(m.c.mid));
 
@@ -1369,14 +1411,6 @@ public:
 			reinterpret_cast<byte*>(const_cast<T*>(last)));
 
 		return reinterpret_cast<T*>(next);
-	}
-
-	nobloat_INLINE T* _push_back_uninitialized(size_t count)
-	{
-		byte* slots = nobloat_OPERATIONS::push_back(&m.c,
-			count * sizeof(T), static_cast<byte_allocator&>(m));
-
-		return reinterpret_cast<T*>(slots);
 	}
 
 	nobloat_INLINE void push_back(const T& value)
@@ -1395,6 +1429,44 @@ public:
 		new(slot) T(std::move(value));
 	}
 
+	nobloat_INLINE T& _push_back(T&& value)
+	{
+		byte* slot = nobloat_OPERATIONS::push_back(&m.c,
+			sizeof(T), static_cast<byte_allocator&>(m));
+
+		return *new(slot) T(std::move(value));
+	}
+
+	template<typename TIterator>
+	nobloat_INLINE T* _push_back_range(TIterator beg, TIterator end)
+	{
+		size_t count = std::distance(beg, end);
+
+		byte* slots = nobloat_OPERATIONS::push_back(&m.c,
+			count * sizeof(T), static_cast<byte_allocator&>(m));
+
+		std::uninitialized_move(beg, end, reinterpret_cast<T*>(slots));
+		return reinterpret_cast<T*>(slots) + count;
+	}
+
+	template<typename TIterator>
+	nobloat_INLINE T* _push_back_n(TIterator beg, size_t count)
+	{
+		byte* slots = nobloat_OPERATIONS::push_back(&m.c,
+			count * sizeof(T), static_cast<byte_allocator&>(m));
+
+		std::uninitialized_move_n(beg, count, reinterpret_cast<T*>(slots));
+		return reinterpret_cast<T*>(slots) + count;
+	}
+
+	nobloat_INLINE T* _push_back_uninitialized(size_t count)
+	{
+		byte* slots = nobloat_OPERATIONS::push_back(&m.c,
+			count * sizeof(T), static_cast<byte_allocator&>(m));
+
+		return reinterpret_cast<T*>(slots);
+	}
+
 	template<typename... Args>
 	nobloat_INLINE T& emplace_back(Args&&... args)
 	{
@@ -1407,6 +1479,23 @@ public:
 	nobloat_INLINE void pop_back()
 	{
 		detail::pop_back<nobloat_DESTROY_TYPE>(&m.c, sizeof(T));
+	}
+
+	nobloat_INLINE void _pop_back_n(size_t count)
+	{
+		detail::pop_back<nobloat_DESTROY_TYPE>(&m.c, count * sizeof(T));
+	}
+
+	nobloat_INLINE void _pop_back_uninitialized(size_t count)
+	{
+		detail::pop_back<byte>(&m.c, count * sizeof(T));
+	}
+
+	nobloat_INLINE T _pop_back_value()
+	{
+		T value = std::move(((T*)m.c.mid)[-1]);
+		detail::pop_back<nobloat_DESTROY_TYPE>(&m.c, sizeof(T));
+		return value;
 	}
 
 	nobloat_INLINE void resize(size_t count)
@@ -1529,6 +1618,24 @@ using vector = detail::vector<T, Allocator, 0>;
 template<typename T, size_t LocalCapacity,
 	typename Allocator = std::allocator<T>>
 using small_vector = detail::vector<T, Allocator, LocalCapacity>;
+
+template<typename T, typename A, size_t C, typename U>
+typename detail::vector<T, A, C>::size_type erase(detail::vector<T, A, C>& v, U&& value)
+{
+	auto it = std::remove_if(v.begin(), v.end(), static_cast<U&&>(value));
+	typename detail::vector<T, A, C>::size_type n = it - v.begin();
+	v._pop_back_n(n);
+	return n;
+}
+
+template<typename T, typename A, size_t C, typename Pred>
+typename detail::vector<T, A, C>::size_type erase_if(detail::vector<T, A, C>& v, Pred&& pred)
+{
+	auto it = std::remove_if(v.begin(), v.end(), static_cast<Pred&&>(pred));
+	typename detail::vector<T, A, C>::size_type n = it - v.begin();
+	v._pop_back_n(n);
+	return n;
+}
 
 } // namespace nobloat
 
