@@ -820,11 +820,24 @@ bool compare(const core* lhs, const core* rhs)
 		reinterpret_cast<const T*>(rhs->mid));
 }
 
+template<typename T, size_t LocalCapacity, bool = (alignof(T) > alignof(core))>
+struct storage;
+
 template<typename T, size_t LocalCapacity>
-struct storage
+struct storage<T, LocalCapacity, 0>
 {
-	static_assert(alignof(core) >= alignof(T),
-		"padding between core and local storage");
+	core c;
+	std::aligned_storage_t<
+		sizeof(T) * LocalCapacity,
+		alignof(T)
+	> mutable s;
+};
+
+template<typename T, size_t LocalCapacity>
+struct storage<T, LocalCapacity, 1>
+{
+	// Some padding is needed. Place it here to avoid padding between core and storage.
+	char p[((sizeof(core) + alignof(T) - 1) & ~(alignof(T) - 1)) - sizeof(core)];
 
 	core c;
 	std::aligned_storage_t<
@@ -834,7 +847,13 @@ struct storage
 };
 
 template<typename T>
-struct storage<T, 0>
+struct storage<T, 0, 0>
+{
+	core c;
+};
+
+template<typename T>
+struct storage<T, 0, 1>
 {
 	core c;
 };
@@ -1387,7 +1406,7 @@ public:
 		return reinterpret_cast<T*>(next);
 	}
 
-	nobloat_INLINE void _erase_unstable(const T* pos)
+	nobloat_INLINE T* _erase_unstable(const T* pos)
 	{
 		nobloat_ASSERT(
 			pos >= reinterpret_cast<const T*>(m.c.beg) &&
