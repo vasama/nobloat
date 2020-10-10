@@ -792,6 +792,18 @@ void pop_back(core* array, size_t size)
 	reinterpret_cast<DestroyT*>(new_mid)->~DestroyT();
 }
 
+template<typename DestroyT>
+void pop_back_n(core* array, size_t size)
+{
+	byte* mid = array->mid;
+	byte* new_mid = mid - size;
+	array->mid = new_mid;
+
+	std::destroy(
+		reinterpret_cast<DestroyT*>(new_mid),
+		reinterpret_cast<DestroyT*>(mid));
+}
+
 template<typename T>
 bool equal(const core* lhs, const core* rhs)
 {
@@ -1502,7 +1514,7 @@ public:
 
 	nobloat_INLINE void _pop_back_n(size_t count)
 	{
-		detail::pop_back<nobloat_DESTROY_TYPE>(&m.c, count * sizeof(T));
+		detail::pop_back_n<nobloat_DESTROY_TYPE>(&m.c, count * sizeof(T));
 	}
 
 	nobloat_INLINE void _pop_back_uninitialized(size_t count)
