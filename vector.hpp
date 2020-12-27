@@ -1653,7 +1653,7 @@ using small_vector = detail::vector<T, Allocator, LocalCapacity>;
 template<typename T, typename A, size_t C, typename U>
 typename detail::vector<T, A, C>::size_type erase(detail::vector<T, A, C>& v, U&& value)
 {
-	auto it = std::remove_if(v.begin(), v.end(), static_cast<U&&>(value));
+	auto it = std::remove(v.begin(), v.end(), static_cast<U&&>(value));
 	typename detail::vector<T, A, C>::size_type n = v.end() - it;
 	v._pop_back_n(n);
 	return n;
