@@ -1668,6 +1668,66 @@ typename detail::vector<T, A, C>::size_type erase_if(detail::vector<T, A, C>& v,
 	return n;
 }
 
+template<typename T, typename A, size_t C, typename U>
+typename detail::vector<T, A, C>::size_type erase_unstable(detail::vector<T, A, C>& v, U&& value)
+{
+	auto beg = v.begin();
+	auto end = v.end();
+
+	while (true)
+	{
+		while (true)
+		{
+			if (beg == end) goto exit;
+			if (*beg == value) break;
+			++beg;
+		}
+
+		while (true)
+		{
+			if (beg == --end) goto exit;
+			if (*end != value) break;
+		}
+
+		*beg++ = std::move(*end);
+	}
+
+exit:
+	typename detail::vector<T, A, C>::size_type n = v.end() - end;
+	v._pop_back_n(n);
+	return n;
+}
+
+template<typename T, typename A, size_t C, typename Pred>
+typename detail::vector<T, A, C>::size_type erase_if_unstable(detail::vector<T, A, C>& v, Pred&& pred)
+{
+	auto beg = v.begin();
+	auto end = v.end();
+
+	while (true)
+	{
+		while (true)
+		{
+			if (beg == end) goto exit;
+			if (pred(*beg)) break;
+			++beg;
+		}
+
+		while (true)
+		{
+			if (beg == --end) goto exit;
+			if (pred(*end)) break;
+		}
+
+		*beg++ = std::move(*end);
+	}
+
+exit:
+	typename detail::vector<T, A, C>::size_type n = v.end() - end;
+	v._pop_back_n(n);
+	return n;
+}
+
 } // namespace nobloat
 
 nobloat_MSVC_WARNING(pop)
