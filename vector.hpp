@@ -832,7 +832,20 @@ bool compare(const core* lhs, const core* rhs)
 		reinterpret_cast<const T*>(rhs->mid));
 }
 
-template<typename T, size_t LocalCapacity, bool = (alignof(T) > alignof(core))>
+template<typename, bool>
+struct storage_alignment
+{
+	static constexpr size_t value = 1;
+};
+
+template<typename T>
+struct storage_alignment<T, true>
+{
+	static constexpr size_t value = alignof(T);
+};
+
+template<typename T, size_t LocalCapacity, bool =
+	(storage_alignment<T, (LocalCapacity > 0)>::value > alignof(core))>
 struct storage;
 
 template<typename T, size_t LocalCapacity>
