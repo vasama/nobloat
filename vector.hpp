@@ -11,35 +11,35 @@
 #include <cstring>
 
 #ifndef nobloat_CONFIG_DISABLE_INLINE_HINTS
-#if defined(__clang__) || defined(__GNUC__)
-#define nobloat_INLINE __attribute__((always_inline))
-#define nobloat_NOINLINE __attribute__((noinline))
-#elif defined(_MSC_VER)
-#define nobloat_INLINE __forceinline
-#define nobloat_NOINLINE __declspec(noinline)
-#endif
+#	if defined(__clang__) || defined(__GNUC__)
+#		define nobloat_INLINE __attribute__((always_inline))
+#		define nobloat_NOINLINE __attribute__((noinline))
+#	elif defined(_MSC_VER)
+#		define nobloat_INLINE __forceinline
+#		define nobloat_NOINLINE __declspec(noinline)
+#	endif
 #endif
 
 #ifndef nobloat_INLINE
-#define nobloat_INLINE
-#define nobloat_NOINLINE
+	#define nobloat_INLINE
+	#define nobloat_NOINLINE
 #endif
 
 #ifndef nobloat_CONFIG_ASSERT
-#include <cassert>
-#define nobloat_CONFIG_ASSERT assert
+	#include <cassert>
+	#define nobloat_CONFIG_ASSERT assert
 #endif
 
 #define nobloat_ASSERT nobloat_CONFIG_ASSERT
 
 #if defined(__clang__) || defined(__GNUC__)
-#define nobloat_MSVC_WARNING(...)
-#define nobloat_LIKELY(...) __builtin_expect((__VA_ARGS__), 1)
-#define nobloat_UNLIKELY(...) __builtin_expect((__VA_ARGS__), 0)
+	#define nobloat_MSVC_WARNING(...)
+	#define nobloat_LIKELY(...) __builtin_expect((__VA_ARGS__), 1)
+	#define nobloat_UNLIKELY(...) __builtin_expect((__VA_ARGS__), 0)
 #elif defined(_MSC_VER)
-#define nobloat_MSVC_WARNING(...) __pragma(warning(__VA_ARGS__))
-#define nobloat_LIKELY(...) (__VA_ARGS__)
-#define nobloat_UNLIKELY(...) (__VA_ARGS__)
+	#define nobloat_MSVC_WARNING(...) __pragma(warning(__VA_ARGS__))
+	#define nobloat_LIKELY(...) (__VA_ARGS__)
+	#define nobloat_UNLIKELY(...) (__VA_ARGS__)
 #endif
 
 nobloat_MSVC_WARNING(push)
@@ -1659,8 +1659,7 @@ nobloat_INLINE bool operator>=(
 template<typename T, typename Allocator = std::allocator<T>>
 using vector = detail::vector<T, Allocator, 0>;
 
-template<typename T, size_t LocalCapacity,
-	typename Allocator = std::allocator<T>>
+template<typename T, size_t LocalCapacity, typename Allocator = std::allocator<T>>
 using small_vector = detail::vector<T, Allocator, LocalCapacity>;
 
 template<typename T, typename A, size_t C, typename U>
