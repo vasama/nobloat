@@ -1728,7 +1728,7 @@ typename detail::vector<T, A, C>::size_type erase_if_unstable(detail::vector<T, 
 		while (true)
 		{
 			if (beg == --end) goto exit;
-			if (pred(*end)) break;
+			if (!pred(*end)) break;
 		}
 
 		*beg++ = std::move(*end);
