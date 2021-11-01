@@ -1501,6 +1501,16 @@ public:
 		return reinterpret_cast<T*>(slots);
 	}
 
+	template<typename U = T>
+	nobloat_INLINE T* _push_back_fill(size_t count, const U& value)
+	{
+		byte* slots = nobloat_OPERATIONS::push_back(&m.c,
+			count * sizeof(T), static_cast<byte_allocator&>(m));
+
+		std::uninitialized_fill_n(reinterpret_cast<T*>(slots), count, value);
+		return reinterpret_cast<T*>(slots);
+	}
+
 	nobloat_INLINE T* _push_back_uninitialized(size_t count)
 	{
 		byte* slots = nobloat_OPERATIONS::push_back(&m.c,
