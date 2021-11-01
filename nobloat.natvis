@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+	<Type Name="nobloat::detail::vector&lt;*&gt;">
+		<Intrinsic Name="size" Expression="(size_t)((pointer)m.c.mid - (pointer)m.c.beg)" />
+		<Intrinsic Name="capacity" Expression="(size_t)((pointer)m.c.end - (pointer)m.c.beg)" />
+		<DisplayString>{{ size={size()} }}</DisplayString>
+		<Expand>
+			<Item Name="[capacity]" ExcludeView="simple">capacity()</Item>
+			<ArrayItems>
+				<Size>size()</Size>
+				<ValuePointer>(pointer)m.c.beg</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
+</AutoVisualizer>
