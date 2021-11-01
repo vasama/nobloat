@@ -1511,6 +1511,15 @@ public:
 		return reinterpret_cast<T*>(slots);
 	}
 
+	nobloat_INLINE T* _push_back_default(size_t count)
+	{
+		byte* slots = nobloat_OPERATIONS::push_back(&m.c,
+			count * sizeof(T), static_cast<byte_allocator&>(m));
+
+		std::uninitialized_default_construct_n(reinterpret_cast<T*>(slots), count);
+		return reinterpret_cast<T*>(slots);
+	}
+
 	nobloat_INLINE T* _push_back_uninitialized(size_t count)
 	{
 		byte* slots = nobloat_OPERATIONS::push_back(&m.c,
