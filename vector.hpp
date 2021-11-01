@@ -1481,16 +1481,14 @@ public:
 		return *new(slot) T(std::move(value));
 	}
 
-	template<typename TIterator>
-	nobloat_INLINE T* _push_back_range(TIterator beg, TIterator end)
+	template<typename InputIt>
+	nobloat_INLINE T* _push_back_range(InputIt beg, InputIt end)
 	{
-		size_t count = std::distance(beg, end);
-
 		byte* slots = nobloat_OPERATIONS::push_back(&m.c,
-			count * sizeof(T), static_cast<byte_allocator&>(m));
+			std::distance(beg, end) * sizeof(T), static_cast<byte_allocator&>(m));
 
-		std::uninitialized_move(beg, end, reinterpret_cast<T*>(slots));
-		return reinterpret_cast<T*>(slots) + count;
+		std::uninitialized_copy(beg, end, reinterpret_cast<T*>(slots));
+		return reinterpret_cast<T*>(slots);
 	}
 
 	template<typename TIterator>
