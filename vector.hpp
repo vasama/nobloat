@@ -1491,14 +1491,14 @@ public:
 		return reinterpret_cast<T*>(slots);
 	}
 
-	template<typename TIterator>
-	nobloat_INLINE T* _push_back_n(TIterator beg, size_t count)
+	template<typename InputIt>
+	nobloat_INLINE T* _push_back_n(InputIt beg, size_t count)
 	{
 		byte* slots = nobloat_OPERATIONS::push_back(&m.c,
 			count * sizeof(T), static_cast<byte_allocator&>(m));
 
-		std::uninitialized_move_n(beg, count, reinterpret_cast<T*>(slots));
-		return reinterpret_cast<T*>(slots) + count;
+		std::uninitialized_copy_n(beg, count, reinterpret_cast<T*>(slots));
+		return reinterpret_cast<T*>(slots);
 	}
 
 	nobloat_INLINE T* _push_back_uninitialized(size_t count)
